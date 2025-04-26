@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native';
+import { StyleSheet, Text, ScrollView, View, TouchableOpacity, Image } from 'react-native';
 import { Audio } from 'expo-av';
 import { useFonts } from 'expo-font';
+import Animated, { useSharedValue, withTiming, withRepeat, withDelay
+  } from 'react-native-reanimated';
 import * as SplashScreen from 'expo-splash-screen';
 
 
@@ -21,7 +23,7 @@ export default function BoiledEggTimer() {
   
   // Cargar fuentes
   const [fontsLoaded] = useFonts({
-    'SpaceMono': require('../../assets/fonts/SpaceMono-Regular.ttf'),
+    'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   // Cargar sonido
@@ -37,7 +39,7 @@ export default function BoiledEggTimer() {
         });
 
         const { sound } = await Audio.Sound.createAsync(
-          require('../../assets/images/alarm-no3-14864.mp3'),
+          require('../assets/images/alarm-no3-14864.mp3'),
           { shouldPlay: false }
         );
         
@@ -85,6 +87,7 @@ export default function BoiledEggTimer() {
             clearInterval(interval);
             setIsActive(false);
             playSound();
+            startAnimation();
             return 0;
           }
           return prevTime - 1;
@@ -116,6 +119,16 @@ export default function BoiledEggTimer() {
     } catch (error) {
       console.error("Error reproduciendo el sonido:", error);
     }
+  };
+
+  // Animación de tiempo terminado
+  const opacity = useSharedValue(1);
+
+  const startAnimation = () => {
+    opacity.value = withDelay(300, withRepeat(
+      withTiming(0, { duration: 520 }),
+      8, true
+    ));
   };
 
   // Función para iniciar temporizador
@@ -153,51 +166,58 @@ export default function BoiledEggTimer() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Boiled Egg{'\n'}Timer</Text>
-      
-      <View style={styles.imageContainer}>
-        <Image 
-          source={require('../../assets/images/egg3.png')}
-          style={styles.eggImage}
-          resizeMode="contain"
-        />
+    <ScrollView>
+      <View style={styles.container}>
+        <Text style={styles.title}>Boiled Egg{'\n'}Timer</Text>
+
+        <View style={styles.imageContainer}>
+          <Image
+            source={require('../assets/images/egg-done.png')}
+            style={[styles.eggImage, { position: 'absolute' }]}
+            resizeMode="contain"
+          />
+          <Animated.Image
+            source={require('../assets/images/egg.png')}
+            style={[styles.eggImage, { opacity }]}
+            resizeMode="contain"
+          />
+        </View>
+
+        <Text style={styles.timer}>{formatTime(timeRemaining)}</Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.typeButton, eggType === 'soft' && styles.selectedType]}
+            onPress={() => selectEggType('soft')}
+          >
+            <Text style={styles.typeButtonText}>Soft boiled</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.typeButton, eggType === 'medium' && styles.selectedType]}
+            onPress={() => selectEggType('medium')}
+          >
+            <Text style={styles.typeButtonText}>Medium boiled</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.typeButton, eggType === 'hard' && styles.selectedType]}
+            onPress={() => selectEggType('hard')}
+          >
+            <Text style={styles.typeButtonText}>Hard boiled</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.startButtonContainer}>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={isActive ? resetTimer : startTimer}
+          >
+            <Text style={styles.startButtonText}>{isActive ? 'Stop' : 'Start'}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      
-      <Text style={styles.timer}>{formatTime(timeRemaining)}</Text>
-      
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity 
-          style={[styles.typeButton, eggType === 'soft' && styles.selectedType]} 
-          onPress={() => selectEggType('soft')}
-        >
-          <Text style={styles.typeButtonText}>Soft boiled</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.typeButton, eggType === 'medium' && styles.selectedType]} 
-          onPress={() => selectEggType('medium')}
-        >
-          <Text style={styles.typeButtonText}>Medium boiled</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={[styles.typeButton, eggType === 'hard' && styles.selectedType]} 
-          onPress={() => selectEggType('hard')}
-        >
-          <Text style={styles.typeButtonText}>Hard boiled</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <View style={styles.startButtonContainer}>
-        <TouchableOpacity 
-          style={styles.startButton} 
-          onPress={isActive ? resetTimer : startTimer}
-        >
-          <Text style={styles.startButtonText}>{isActive ? 'Stop' : 'Start'}</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -223,13 +243,12 @@ const styles = StyleSheet.create({
     marginVertical: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4DC6F4',
-    borderRadius: 20,
+    position: 'relative',
   },
   eggImage: {
     width: 200,
     height: 240,
-    borderRadius: 20,
+    imageRendering: 'pixelated',
   },
   timer: {
     fontFamily: 'SpaceMono',
